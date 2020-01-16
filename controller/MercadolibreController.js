@@ -17,9 +17,8 @@ exports.auth = async (code, redirect_uri) => {
             redirect_uri: redirect_uri
         })
         .then(async response => {
-            console.log(response);
-            let ss = await TokenController.update(response.data);
-            console.log(ss);
+            //console.log(response);
+            await TokenController.update(response.data);
             return response.data
         })
         .catch(error => {
@@ -28,7 +27,7 @@ exports.auth = async (code, redirect_uri) => {
 }
 
 exports.checkToken = async (access_token) => {
-    console.log(access_token);
+    //console.log(access_token);
     return await axios.get("https://api.mercadolibre.com/users/me?access_token=" + access_token)
         .then(response => {
             return response.data;
@@ -43,7 +42,7 @@ exports.refreshToken = async () => {
     const token = await TokenController.view(process.env.USER_ID);
     return await axios.post("https://api.mercadolibre.com/oauth/token?grant_type=refresh_token&client_id=" + process.env.APP_ID + "&client_secret=" + process.env.APP_SECRET + "&refresh_token=" + token.refresh_token)
         .then(async r => {
-            console.log(r);
+            //console.log(r);
             await TokenController.update(r.data);
             return r.data
         })
@@ -132,9 +131,9 @@ exports.addItem = async (data, addShipping, percentPrice, type, token) => {
     try {
         const itemPost = await axios.post("https://api.mercadolibre.com/items?access_token=" + token, itemMeli);
         const findMongoDb = await ProductsModel.findOne({ "code.web": data.code.web });
-        await findMongoDb.mercadolibre.push({ type: type, shipping: addShipping, code: itemPost.data.id, price: itemMeli.price, percent: percentPrice / 100 });
+        await findMongoDb.mercadolibre.push({ type: type, shipping: addShipping, code: itemPost.data.id, price: itemMeli.price, percent: percentPrice });
         await findMongoDb.save();
-        return ({ status: 200, title: itemMeli.title, type: type, shipping: addShipping, code: itemPost.data.id, price: itemMeli.price, percent: percentPrice / 100 });
+        return ({ status: 200, title: itemMeli.title, type: type, shipping: addShipping, code: itemPost.data.id, price: itemMeli.price, percent: percentPrice });
     }
     catch (e) {
         return ({ status: 400, title: itemMeli.title, error: e.response.data });
@@ -144,10 +143,8 @@ exports.addItem = async (data, addShipping, percentPrice, type, token) => {
 exports.editItem = async (itemId, data, addShipping, percentPrice, type, token) => {
     //PREDICCION DE LA CATEGORIA VIA TITULO
     const category = await this.getPredictionCategory(data.title + data.category + data.subcategory);
-
     //CALCULAR PRECIO ME2 X CATEGORIA
-    var shipping = (addShipping === true && category.dimensions !== 0) ? await this.shippingPriceByDimension(category.dimensions) : 0;
-
+    var shipping = (addShipping === true && (category.dimensions !== null || category.dimensions !== 0)) ? await this.shippingPriceByDimension(category.dimensions) : 0;
     if (!data.stock) {
         await this.changeState(itemId, 'paused', token);
         return ({ status: 200, title: data.title, error: { message: "Anuncio pausado por bajo stock" }});
@@ -164,7 +161,6 @@ exports.editItem = async (itemId, data, addShipping, percentPrice, type, token) 
         data.images.forEach(img => {
             itemMeli.pictures.push({ source: img.source });
         });
-
         try {
             const itemPost = await axios.put("https://api.mercadolibre.com/items/" + itemId + "?access_token=" + token, itemMeli);
             const findMongoDb = await ProductsModel.findOne({ "code.web": data.code.web });
@@ -183,7 +179,7 @@ exports.editItem = async (itemId, data, addShipping, percentPrice, type, token) 
 exports.changeState = (item_id, status, token) => {
     return axios.put("https://api.mercadolibre.com/items/" + item_id + "?access_token=" + token, { "status": status })
         .then(response => {
-            console.log(response.data);
+            //console.log(response.data);
         })
         .catch((error) => {
             if (error.response) {

@@ -29,5 +29,4 @@ router.put("/",Middelware.checkToken, async (req, res) => {
     const get = await ProductController.update(req.body);
     res.status(200).send({ get });
 })
-
 module.exports = router;
