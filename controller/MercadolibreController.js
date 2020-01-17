@@ -107,7 +107,7 @@ exports.addItem = async (data, addShipping, percentPrice, type, token) => {
     const category = await this.getPredictionCategory(data.title + data.category + data.subcategory);
 
     //CALCULAR PRECIO ME2 X CATEGORIA
-    var shipping = (addShipping === true && category.dimensions !== 0) ? await this.shippingPriceByDimension(category.dimensions) : 0;
+    var shipping = (addShipping === true && (category.dimensions !== null || category.dimensions !== undefined || category.dimensions !== 0)) ? await this.shippingPriceByDimension(category.dimensions) : 0;
 
     //CREATE OBJETO MELI
     const itemMeli = {};
@@ -144,7 +144,7 @@ exports.editItem = async (itemId, data, addShipping, percentPrice, type, token) 
     //PREDICCION DE LA CATEGORIA VIA TITULO
     const category = await this.getPredictionCategory(data.title + data.category + data.subcategory);
     //CALCULAR PRECIO ME2 X CATEGORIA
-    var shipping = (addShipping === true && (category.dimensions !== null || category.dimensions !== 0)) ? await this.shippingPriceByDimension(category.dimensions) : 0;
+    var shipping = (addShipping === true && (category.dimensions !== null || category.dimensions !== undefined || category.dimensions !== 0)) ? await this.shippingPriceByDimension(category.dimensions) : 0;
     if (!data.stock) {
         await this.changeState(itemId, 'paused', token);
         return ({ status: 200, title: data.title, error: { message: "Anuncio pausado por bajo stock" }});
@@ -152,6 +152,7 @@ exports.editItem = async (itemId, data, addShipping, percentPrice, type, token) 
         await this.changeState(itemId, 'active', token);
         //CREATE OBJETO MELI
         const itemMeli = {};
+        itemMeli.title = data.title;
         itemMeli.available_quantity = data.stock;
         itemMeli.price = ((data.price.default * (percentPrice / 100) + data.price.default) + shipping).toFixed(2);
         itemMeli.video_id = data.description.video;

@@ -7,6 +7,8 @@ app.use(config.morgan('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(config.cors());
+app.use(config.compression());
+
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*"); 
