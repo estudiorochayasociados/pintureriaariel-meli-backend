@@ -59,7 +59,7 @@ exports.updateProductsWithWeb = async (link) => {
 
 exports.updateWeb = async (item) => {
     this.setStock(0);
-    var itemSearch = await this.view(item.data.cod_producto);
+    var itemSearch = (item.data.cod_producto) ? await this.view(item.data.cod_producto) : false;
     if (itemSearch) {
         const images = [];
         itemSearch.title = removeSpecialChars(item.data.titulo);
@@ -108,7 +108,7 @@ exports.updateWeb = async (item) => {
 }
 
 exports.list = async () => {
-    return ProductsModel.find();
+    return ProductsModel.find().limit(100);
 }
 
 exports.create = (item) => {

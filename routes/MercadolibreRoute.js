@@ -33,13 +33,13 @@ router.get("/refresh-token", async (req, res) => {
 //items
 router.post("/item", Middleware.checkToken, async (req, res) => {
     const token = await TokenController.view(process.env.USER_ID); //get token mongodb
-    const add = await MercadolibreController.addItem(req.body.item, req.body.shipping, req.body.percent, req.body.type, token.access_token);
+    const add = await MercadolibreController.addItem(req.body.item, req.body.shipping, req.body.percent, req.body.type, req.body.garanty, token.access_token);
     res.status(200).send(add);
 });
 
 router.put("/item/:id", Middleware.checkToken, async (req, res) => {
     const token = await TokenController.view(process.env.USER_ID); //get token mongodb
-    const edit = await MercadolibreController.editItem(req.params.id, req.body.item, req.body.shipping, req.body.percent, req.body.type, token.access_token);
+    const edit = await MercadolibreController.editItem(req.params.id, req.body.item, req.body.shipping, req.body.percent, req.body.type, req.body.garanty, token.access_token);
     res.status(200).send(edit);
 });
 
@@ -93,7 +93,7 @@ router.post("/config", Middleware.checkToken, async (req, res) => {
 });
 
 router.put("/config", Middleware.checkToken, async (req, res) => {
-    
+
     const updateConfig = await ConfigController.update(req.body);
     res.json(updateConfig);
 });

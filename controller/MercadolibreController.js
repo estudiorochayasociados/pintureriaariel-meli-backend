@@ -74,6 +74,22 @@ exports.getPredictionCategory = async (title) => {
 
 }
 
+exports.getGarantyCategory = async (cod, garanty) => {
+    return axios.get("https://api.mercadolibre.com/categories/" + cod + "/sale_terms")
+        .then(async r => {
+            var days = r.data[r.data.length - 1].value_max_length;
+            if (r.data[r.data.length - 1].id == 'MANUFACTURING_TIME') {
+                return (garanty <= days) ? garanty : 0;
+            } else {
+                return 0;
+            }
+        })
+        .catch(e => {
+            console.log(e.response);
+        })
+
+}
+
 exports.getShippingDimension = async (categorie) => {
     return await axios.get("https://api.mercadolibre.com/categories/" + categorie + "/shipping_preferences")
         .then(r => {
@@ -82,7 +98,7 @@ exports.getShippingDimension = async (categorie) => {
             } else {
                 dimensions = 0;
             }
-            return dimensions;
+            return Number(dimensions);
         })
         .catch(e => {
             console.log(e.response);
@@ -102,10 +118,10 @@ exports.shippingPriceByDimension = async (dimension) => {
         })
 }
 
-exports.addItem = async (data, addShipping, percentPrice, type, token) => {
+exports.addItem = async (data, addShipping, percentPrice, type, garanty, token) => {
     //PREDICCION DE LA CATEGORIA VIA TITULO
     const category = await this.getPredictionCategory(data.title + data.category + data.subcategory);
-
+    const garantyDays = Number((garanty != 0) ? await this.getGarantyCategory(category.id, garanty) : 0);
     //CALCULAR PRECIO ME2 X CATEGORIA
     var shipping = (addShipping === true && (category.dimensions !== null || category.dimensions !== undefined || category.dimensions !== 0)) ? await this.shippingPriceByDimension(category.dimensions) : 0;
 
@@ -116,7 +132,7 @@ exports.addItem = async (data, addShipping, percentPrice, type, token) => {
     itemMeli.available_quantity = (data.stock) ? data.stock : 1;
     itemMeli.buying_mode = "buy_it_now";
     itemMeli.condition = "new";
-    itemMeli.price = ((data.price.default * (percentPrice / 100 ) + data.price.default) + shipping).toFixed(2);
+    itemMeli.price = ((data.price.default * (percentPrice / 100) + data.price.default) + shipping).toFixed(2);
     itemMeli.description = { plain_text: data.description.text };
     itemMeli.pictures = [];
     itemMeli.attributes = [];
@@ -127,6 +143,14 @@ exports.addItem = async (data, addShipping, percentPrice, type, token) => {
     itemMeli.video_id = data.description.video;
     itemMeli.listing_type_id = type;
     itemMeli.category_id = category.id;
+
+    // SET MANUFACTURING_TIME
+    if (garantyDays != 0) {
+        itemMeli.sale_terms = [];
+        itemMeli.sale_terms.id = "MANUFACTURING_TIME";
+        itemMeli.sale_terms.value_id = null;
+        itemMeli.sale_terms.value_name = garantyDays + " dias";
+    }
 
     try {
         const itemPost = await axios.post("https://api.mercadolibre.com/items?access_token=" + token, itemMeli);
@@ -140,14 +164,16 @@ exports.addItem = async (data, addShipping, percentPrice, type, token) => {
     }
 }
 
-exports.editItem = async (itemId, data, addShipping, percentPrice, type, token) => {
+exports.editItem = async (itemId, data, addShipping, percentPrice, type, garanty, token) => {
     //PREDICCION DE LA CATEGORIA VIA TITULO
     const category = await this.getPredictionCategory(data.title + data.category + data.subcategory);
+    const garantyDays = Number((garanty != 0) ? await this.getGarantyCategory(category.id, garanty) : 0);
+
     //CALCULAR PRECIO ME2 X CATEGORIA
     var shipping = (addShipping === true && (category.dimensions !== null || category.dimensions !== undefined || category.dimensions !== 0)) ? await this.shippingPriceByDimension(category.dimensions) : 0;
     if (!data.stock) {
         await this.changeState(itemId, 'paused', token);
-        return ({ status: 200, title: data.title, error: { message: "Anuncio pausado por bajo stock" }});
+        return ({ status: 200, title: data.title, error: { message: "Anuncio pausado por bajo stock" } });
     } else {
         await this.changeState(itemId, 'active', token);
         //CREATE OBJETO MELI
@@ -162,6 +188,15 @@ exports.editItem = async (itemId, data, addShipping, percentPrice, type, token) 
         data.images.forEach(img => {
             itemMeli.pictures.push({ source: img.source });
         });
+
+        // SET MANUFACTURING_TIME
+        if (garantyDays != 0) {
+            itemMeli.sale_terms = [];
+            itemMeli.sale_terms.id = "MANUFACTURING_TIME";
+            itemMeli.sale_terms.value_id = null;
+            itemMeli.sale_terms.value_name = garantyDays + " dias";
+        }
+
         try {
             const itemPost = await axios.put("https://api.mercadolibre.com/items/" + itemId + "?access_token=" + token, itemMeli);
             const findMongoDb = await ProductsModel.findOne({ "code.web": data.code.web });
