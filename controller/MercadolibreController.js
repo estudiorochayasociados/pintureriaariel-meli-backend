@@ -164,10 +164,10 @@ exports.addItem = async (data, addShipping, percentPrice, type, garanty, token) 
     }
 }
 
-exports.editItem = async (itemId, data, addShipping, percentPrice, type, garanty, token) => {
+exports.editItem = async (itemId, data, addShipping, percentPrice, type, token) => {
     //PREDICCION DE LA CATEGORIA VIA TITULO
     const category = await this.getPredictionCategory(data.title + data.category + data.subcategory);
-    const garantyDays = Number((garanty != 0) ? await this.getGarantyCategory(category.id, garanty) : 0);
+    //const garantyDays = Number((garanty != 0) ? await this.getGarantyCategory(category.id, garanty) : 0);
 
     //CALCULAR PRECIO ME2 X CATEGORIA
     var shipping = (addShipping === true && (category.dimensions !== null || category.dimensions !== undefined || category.dimensions !== 0)) ? await this.shippingPriceByDimension(category.dimensions) : 0;
@@ -190,12 +190,12 @@ exports.editItem = async (itemId, data, addShipping, percentPrice, type, garanty
         });
 
         // SET MANUFACTURING_TIME
-        if (garantyDays != 0) {
-            itemMeli.sale_terms = [];
-            itemMeli.sale_terms.id = "MANUFACTURING_TIME";
-            itemMeli.sale_terms.value_id = null;
-            itemMeli.sale_terms.value_name = garantyDays + " dias";
-        }
+        // if (garantyDays != 0) {
+        //     itemMeli.sale_terms = [];
+        //     itemMeli.sale_terms.id = "MANUFACTURING_TIME";
+        //     itemMeli.sale_terms.value_id = null;
+        //     itemMeli.sale_terms.value_name = garantyDays + " dias";
+        // }
 
         try {
             const itemPost = await axios.put("https://api.mercadolibre.com/items/" + itemId + "?access_token=" + token, itemMeli);

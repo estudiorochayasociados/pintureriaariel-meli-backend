@@ -108,7 +108,7 @@ exports.updateWeb = async (item) => {
 }
 
 exports.list = async () => {
-    return ProductsModel.find().limit(100);
+    return ProductsModel.find();
 }
 
 exports.create = (item) => {
